@@ -1,5 +1,16 @@
+/**
+ * Live Poll Application
+ * * GitHub Setup Instructions:
+ * 1. Drop this file into your project as `src/App.jsx` (Vite) or `src/App.js` (Create React App).
+ * 2. Ensure Tailwind CSS is configured in your project.
+ * 3. Install the required dependencies by running:
+ * npm install firebase lucide-react
+ * * Note: While Firebase web API keys are safe to be public, for enterprise 
+ * repositories, consider moving the firebaseConfig values to an .env file 
+ * (e.g., import.meta.env.VITE_FIREBASE_API_KEY).
+ */
+
 import React, { useState, useEffect, useMemo } from 'react';
-import { createRoot } from 'react-dom/client';
 import { 
   BarChart3, 
   Smartphone, 
@@ -44,7 +55,9 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
 const db = getFirestore(app);
-const appId = typeof __app_id !== 'undefined' ? __app_id : 'live-poll-app';
+
+// Graceful fallback for the appId to support both the Canvas and local GitHub environments
+const runtimeAppId = typeof __app_id !== 'undefined' ? __app_id : 'live-poll-app';
 
 // Vibrant colors for the bar chart
 const CHART_COLORS = ['#FF2A54', '#00C3A9', '#FFC100', '#5D5FEF', '#FF7A00', '#00D1FF'];
@@ -87,8 +100,6 @@ export default function App() {
         // Attempt anonymous sign-in
         await signInAnonymously(auth);
       } catch (err) {
-        // We use console.warn instead of console.error so it doesn't trigger the Canvas error reporter,
-        // because we are safely handling this expected failure with a local mock user fallback.
         console.warn("Firebase Auth Note: Anonymous sign-in is not enabled. Falling back to local mode.", err.message);
         
         if (mounted) {
@@ -118,8 +129,8 @@ export default function App() {
     if (!user) return;
 
     // Strict paths for public data
-    const pollsRef = collection(db, 'artifacts', appId, 'public', 'data', 'live_polls');
-    const votesRef = collection(db, 'artifacts', appId, 'public', 'data', 'live_votes');
+    const pollsRef = collection(db, 'artifacts', runtimeAppId, 'public', 'data', 'live_polls');
+    const votesRef = collection(db, 'artifacts', runtimeAppId, 'public', 'data', 'live_votes');
 
     // Fetch Polls
     const unsubscribePolls = onSnapshot(pollsRef, (snapshot) => {
@@ -197,7 +208,7 @@ export default function App() {
     };
 
     try {
-      const pollRef = doc(db, 'artifacts', appId, 'public', 'data', 'live_polls', code);
+      const pollRef = doc(db, 'artifacts', runtimeAppId, 'public', 'data', 'live_polls', code);
       await setDoc(pollRef, pollData);
       setActivePollCode(code);
       setView('host');
@@ -235,7 +246,7 @@ export default function App() {
     };
 
     try {
-      const voteRef = doc(db, 'artifacts', appId, 'public', 'data', 'live_votes', voteId);
+      const voteRef = doc(db, 'artifacts', runtimeAppId, 'public', 'data', 'live_votes', voteId);
       await setDoc(voteRef, voteData);
     } catch (err) {
       console.warn("Note: Could not cast vote (Check Firestore Rules):", err.message);
